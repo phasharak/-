@@ -1,190 +1,523 @@
-import React, { useState, useRef, useEffect } from "react";
-
-export default function LoyKrathongOnlineFSSNU() {
-  const [name, setName] = useState("");
-  const [wish, setWish] = useState("ขอให้ทุกคนมีความสุข สมหวัง และปลอดภัยตลอดปีการศึกษา");
-  const [krathongs, setKrathongs] = useState([]);
-  const [time, setTime] = useState(0);
-  const audioRef = useRef(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!name.trim()) return;
-
-    const newKrathong = {
-      id: Date.now(),
-      name: name.trim(),
-      wish: wish.trim(),
-      baseX: 15 + Math.random() * 70,
-      baseBottom: 8 + Math.random() * 10,
-      phase: Math.random() * Math.PI * 2,
-      speed: 0.4 + Math.random() * 0.5,
-    };
-
-    setKrathongs((prev) => [...prev.slice(-7), newKrathong]);
-    setName("");
-  };
-
-  const toggleMusic = () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (isPlaying) {
-      audio.pause();
-      setIsPlaying(false);
-    } else {
-      // ใช้ user interaction ให้แน่ใจว่าเสียงเล่นได้จริง
-      audio.currentTime = 0;
-      audio.volume = 0.8;
-      audio
-        .play()
-        .then(() => setIsPlaying(true))
-        .catch((err) => {
-          console.warn("Audio play blocked:", err);
-          alert("⚠️ กรุณาแตะปุ่มเปิดเพลงอีกครั้งเพื่อเริ่มเล่นเพลง");
-        });
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>ลอยกระทงออนไลน์ - คณะสังคมศาสตร์ มหาวิทยาลัยนเรศวร</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
-  };
+    body {
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+      background: linear-gradient(to bottom, #020617, #0f172a, #020617);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+      color: #e5e7eb;
+    }
+    .app {
+      width: 100%;
+      max-width: 1100px;
+    }
+    .grid {
+      display: grid;
+      gap: 2rem;
+    }
+    @media (min-width: 900px) {
+      .grid {
+        grid-template-columns: 1.1fr 1.1fr;
+      }
+    }
+    .card {
+      background: rgba(15, 23, 42, 0.8);
+      border-radius: 1.5rem;
+      padding: 1.5rem 1.75rem;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(18px);
+    }
+    .title {
+      font-size: 1.9rem;
+      font-weight: 700;
+      color: #f9fafb;
+      line-height: 1.25;
+      text-align: center;
+    }
+    @media (min-width: 640px) {
+      .title {
+        text-align: left;
+      }
+    }
+    .subtitle {
+      display: block;
+      color: #7dd3fc;
+      font-size: 1.2rem;
+      margin-top: 0.4rem;
+    }
+    .desc {
+      margin-top: 0.75rem;
+      font-size: 0.9rem;
+      color: #e5e7eb;
+      text-align: center;
+    }
+    @media (min-width: 640px) {
+      .desc {
+        text-align: left;
+      }
+    }
+    .field {
+      margin-top: 1rem;
+    }
+    .field label {
+      font-size: 0.85rem;
+      color: #bae6fd;
+      margin-bottom: 0.3rem;
+      display: block;
+    }
+    .input,
+    .textarea {
+      width: 100%;
+      border-radius: 1rem;
+      border: 1px solid rgba(56, 189, 248, 0.5);
+      background: rgba(15, 23, 42, 0.85);
+      padding: 0.6rem 0.9rem;
+      font-size: 0.9rem;
+      color: #e5e7eb;
+      outline: none;
+    }
+    .input:focus,
+    .textarea:focus {
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 1px #38bdf8;
+    }
+    .textarea {
+      resize: none;
+      min-height: 80px;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.6rem;
+      margin-top: 1.2rem;
+    }
+    .btn {
+      border-radius: 1rem;
+      padding: 0.6rem 1.3rem;
+      font-size: 0.9rem;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.3rem;
+      transition: transform 0.1s ease, box-shadow 0.1s ease,
+        background-color 0.2s ease, border-color 0.2s ease;
+      white-space: nowrap;
+    }
+    .btn-primary {
+      background: rgba(56, 189, 248, 0.95);
+      color: #020617;
+      box-shadow: 0 14px 30px rgba(56, 189, 248, 0.45);
+    }
+    .btn-primary:hover {
+      background: #7dd3fc;
+      transform: translateY(-1px);
+      box-shadow: 0 20px 40px rgba(56, 189, 248, 0.55);
+    }
+    .btn-outline {
+      border: 1px solid rgba(56, 189, 248, 0.6);
+      background: rgba(15, 23, 42, 0.85);
+      color: #e0f2fe;
+    }
+    .btn-outline:hover {
+      background: rgba(30, 64, 175, 0.7);
+      transform: translateY(-1px);
+    }
+    .note {
+      margin-top: 0.8rem;
+      font-size: 0.75rem;
+      color: #9ca3af;
+      text-align: center;
+    }
+    @media (min-width: 640px) {
+      .note {
+        text-align: left;
+      }
+    }
 
-  useEffect(() => {
-    let frame;
-    const animate = () => {
-      setTime((t) => t + 0.03);
-      frame = requestAnimationFrame(animate);
-    };
-    frame = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(frame);
-  }, []);
+    /* Scene (moon + river + krathongs) */
+    .scene-card {
+      position: relative;
+      height: 380px;
+      border-radius: 1.5rem;
+      overflow: hidden;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      background: radial-gradient(circle at top, #1d283a 0, #020617 55%);
+    }
+    @media (min-width: 640px) {
+      .scene-card {
+        height: 410px;
+      }
+    }
+    .moon {
+      position: absolute;
+      right: 1rem;
+      top: -2.5rem;
+      width: 110px;
+      height: 110px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 30%, #fefce8, #facc15, #eab308);
+      box-shadow: 0 0 60px rgba(250, 250, 210, 0.9);
+      opacity: 0.95;
+    }
+    .water-wrapper {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 190px;
+      overflow: hidden;
+    }
+    .scene-top-text {
+      position: absolute;
+      top: 0.9rem;
+      left: 0.9rem;
+      right: 0.9rem;
+      font-size: 0.75rem;
+      text-align: center;
+      color: #e5e7eb;
+    }
+    .scene-top-text p:first-child {
+      font-weight: 600;
+      font-size: 0.8rem;
+    }
+    .scene-top-text p:last-child {
+      margin-top: 0.25rem;
+      font-size: 0.7rem;
+      color: #e5e7eb;
+    }
 
-  const getKrathongColor = (k) => {
-    const hue = (time * 25 + k.phase * 80) % 360;
-    return `hsl(${hue}, 70%, 45%)`;
-  };
+    /* Krathongs */
+    .krathong-wrapper {
+      position: absolute;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      pointer-events: none;
+    }
+    .krathong-base {
+      width: 7.8rem;
+      height: 2.5rem;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 16px 30px rgba(15, 118, 110, 0.7);
+      transition: background 0.25s linear;
+    }
+    .krathong-name {
+      max-width: 7rem;
+      font-size: 0.75rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.32);
+      color: #ecfdf5;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .candles {
+      display: flex;
+      align-items: flex-end;
+      gap: 0.2rem;
+      margin-bottom: 0.3rem;
+    }
+    .candle {
+      width: 3px;
+      border-radius: 999px;
+      background: #fed7aa;
+      box-shadow: 0 0 10px rgba(252, 211, 77, 0.9);
+    }
+    .candle.c2 {
+      height: 22px;
+      background: #fed7aa;
+    }
+    .candle.c1,
+    .candle.c3 {
+      height: 18px;
+      background: #fbbf24;
+    }
+    .wish-box {
+      margin-top: 0.35rem;
+      max-width: 11rem;
+      font-size: 0.7rem;
+      background: rgba(15, 23, 42, 0.9);
+      border-radius: 0.9rem;
+      padding: 0.3rem 0.6rem;
+      border: 1px solid rgba(74, 222, 128, 0.6);
+      color: #dcfce7;
+      text-align: center;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.9);
+    }
+    .wish-box span {
+      font-style: italic;
+    }
 
-  return (
-    <div className="min-h-screen w-full bg-gradient-to-b from-slate-900 via-sky-900 to-slate-950 flex items-center justify-center px-4 py-8 overflow-x-hidden">
-      {/* เพลงวันเพ็ญเดือนสิบสอง (ไฟล์เสียงแท้จาก CDN ที่เล่นได้จริง) */}
-      <audio
-        ref={audioRef}
-        loop
-        controls
-        preload="auto"
-        playsInline
-        src="https://files.freemusicarchive.org/storage-freemusicarchive-org/music/no_curator/Thai_Traditional/Loy_Krathong/Loy_Krathong.mp3"
-      />
+    /* Audio hint text small */
+    .audio-hint {
+      margin-top: 0.4rem;
+      font-size: 0.7rem;
+      color: #9ca3af;
+      text-align: center;
+    }
+    @media (min-width: 640px) {
+      .audio-hint {
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="grid">
+      <!-- LEFT: form -->
+      <div class="card">
+        <h1 class="title">
+          ลอยกระทงออนไลน์
+          <span class="subtitle">คณะสังคมศาสตร์ มหาวิทยาลัยนเรศวร</span>
+        </h1>
+        <p class="desc">
+          พิมพ์ชื่อและคำอธิษฐานของคุณ แล้วกด “ลอยกระทง”
+          กระทงจะลอยบนสายน้ำใต้แสงจันทร์ไปพร้อม ๆ กับเพื่อน ๆ
+        </p>
 
-      <div className="w-full max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-        <div className="bg-slate-900/70 backdrop-blur-xl rounded-3xl shadow-xl border border-sky-500/30 p-6 md:p-8 space-y-6">
-          <h1 className="text-3xl font-bold text-white text-center sm:text-left leading-snug">
-            ลอยกระทงออนไลน์
-            <span className="block text-sky-300 text-xl mt-1">
-              คณะสังคมศาสตร์ มหาวิทยาลัยนเรศวร
-            </span>
-          </h1>
-          <p className="text-slate-200 text-sm text-center sm:text-left">
-            พิมพ์ชื่อและคำอธิษฐานของคุณ แล้วกด “ลอยกระทง” เพื่อให้กระทงของคุณลอยบนสายน้ำใต้แสงจันทร์พร้อมเสียงเพลงวันเพ็ญเดือนสิบสอง 🎶
-          </p>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <form id="krathong-form">
+          <div class="field">
+            <label for="name-input">ชื่อ–นามสกุล หรือชื่อเล่น</label>
             <input
+              id="name-input"
               type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="ชื่อของคุณ"
-              className="w-full rounded-2xl border border-sky-500/50 bg-slate-950/60 px-4 py-2.5 text-sm text-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-400"
+              class="input"
+              placeholder="พิมพ์ชื่อของคุณที่นี่"
             />
+          </div>
+          <div class="field">
+            <label for="wish-input">คำอธิษฐาน</label>
             <textarea
-              value={wish}
-              onChange={(e) => setWish(e.target.value)}
-              rows={3}
-              className="w-full rounded-2xl border border-sky-500/50 bg-slate-950/60 px-4 py-2.5 text-sm text-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-400"
+              id="wish-input"
+              class="textarea"
               placeholder="เขียนคำอธิษฐานของคุณที่นี่"
-            />
-            <div className="flex flex-wrap justify-center gap-3">
-              <button
-                type="submit"
-                className="rounded-2xl bg-sky-400/90 hover:bg-sky-300 text-slate-950 px-5 py-2.5 font-semibold shadow-lg text-sm"
-              >
-                🐘 ลอยกระทง
-              </button>
-              <button
-                type="button"
-                onClick={toggleMusic}
-                className="rounded-2xl border border-sky-400/60 text-sky-100 px-4 py-2 text-xs sm:text-sm bg-slate-900/60 hover:bg-slate-800/80"
-              >
-                {isPlaying ? "🔊 หยุดเพลง" : "🎵 เปิดเพลงวันเพ็ญเดือนสิบสอง"}
-              </button>
-            </div>
-          </form>
+            >ขอให้ทุกคนมีความสุข สมหวัง และปลอดภัยตลอดปีการศึกษา</textarea>
+          </div>
+          <div class="actions">
+            <button type="submit" class="btn btn-primary">
+              🐘 ลอยกระทง
+            </button>
+            <button type="button" id="music-toggle" class="btn btn-outline">
+              🎵 เปิดเพลงวันเพ็ญเดือนสิบสอง
+            </button>
+          </div>
+        </form>
+
+        <p class="note">
+          * เวอร์ชันนี้เป็น HTML ไฟล์เดียว สามารถนำไป deploy เป็น Static Site
+          บน Vercel ได้ทันที
+        </p>
+        <p class="audio-hint">
+          ** ใส่ลิงก์ไฟล์เพลง “วันเพ็ญเดือนสิบสอง” ของคณะเองในโค้ดด้านล่าง
+          เพื่อให้เล่นเสียงจริง
+        </p>
+
+        <!-- เสียงเพลง -->
+        <!-- TODO: เปลี่ยน YOUR_AUDIO_URL_HERE.mp3 เป็นลิงก์ไฟล์เพลงของคณะ -->
+        <audio
+          id="bg-audio"
+          loop
+          preload="auto"
+          src="YOUR_AUDIO_URL_HERE.mp3"
+        ></audio>
+      </div>
+
+      <!-- RIGHT: scene -->
+      <div class="scene-card" id="scene">
+        <div class="moon"></div>
+
+        <div class="scene-top-text">
+          <p>คณะสังคมศาสตร์ มหาวิทยาลัยนเรศวร</p>
+          <p>
+            ขอให้ทุกท่านที่มาลอยกระทงออนไลน์ในค่ำคืนนี้ เต็มไปด้วยความสุข
+            ความสบายใจ และแสงสว่างในทุกเส้นทางชีวิต
+          </p>
         </div>
 
-        <div className="relative h-96 rounded-3xl overflow-hidden border border-sky-500/40 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950">
-          <div className="absolute -top-10 right-4 w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-gradient-to-br from-amber-100 via-amber-200 to-amber-300 opacity-95 shadow-[0_0_60px_rgba(250,250,210,0.8)]" />
-
-          <div className="absolute bottom-0 left-0 right-0 h-44 overflow-hidden">
-            <svg className="absolute w-full h-full" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <linearGradient id="waveGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#0ea5e9" stopOpacity="0.9" />
-                  <stop offset="100%" stopColor="#0369a1" stopOpacity="0.85" />
-                </linearGradient>
-              </defs>
-              <path
-                d={`M0 60 Q40 ${60 + Math.sin(time) * 5} 80 60 T160 60 T240 60 T320 60 T400 60 T480 60 T560 60 T640 60 T720 60 V120 H0 Z`}
-                fill="url(#waveGradient)"
-              />
-            </svg>
-          </div>
-
-          {krathongs.map((k) => {
-            const floatX = k.baseX + Math.sin(time * k.speed + k.phase) * 3;
-            const floatY = Math.sin(time * k.speed + k.phase) * 4;
-            const color = getKrathongColor(k);
-
-            return (
-              <div
-                key={k.id}
-                className="absolute transition-transform duration-300 ease-in-out"
-                style={{
-                  left: `${floatX}%`,
-                  bottom: `${k.baseBottom}%`,
-                  transform: `translateX(-50%) translateY(${floatY}px)`,
-                }}
+        <div class="water-wrapper">
+          <svg
+            id="wave-svg"
+            xmlns="http://www.w3.org/2000/svg"
+            width="100%"
+            height="100%"
+          >
+            <defs>
+              <linearGradient
+                id="waveGradient"
+                x1="0"
+                y1="0"
+                x2="0"
+                y2="1"
               >
-                <div className="flex flex-col items-center">
-                  <div className="flex items-end gap-1 mb-1">
-                    <div className="w-0.5 h-5 bg-amber-200 rounded-full shadow-[0_0_8px_rgba(252,211,77,0.9)]" />
-                    <div className="w-0.5 h-6 bg-amber-300 rounded-full shadow-[0_0_10px_rgba(252,211,77,0.9)]" />
-                    <div className="w-0.5 h-5 bg-amber-200 rounded-full shadow-[0_0_8px_rgba(252,211,77,0.9)]" />
-                  </div>
-
-                  <div className="relative">
-                    <div
-                      className="w-32 h-10 rounded-full shadow-lg flex items-center justify-center border border-white/20"
-                      style={{ background: color, boxShadow: `0 16px 30px rgba(15,118,110,0.7)` }}
-                    >
-                      <span className="px-3 py-0.5 rounded-full bg-black/30 text-emerald-50 text-xs font-medium truncate max-w-[8rem]">
-                        {k.name}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="mt-2 bg-slate-900/85 border border-emerald-400/50 rounded-2xl px-3 py-1.5 text-[10px] text-emerald-50 text-center shadow-md max-w-[11rem]">
-                    “{k.wish || "ขอให้มีความสุขและปลอดภัย"}”
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-
-          <div className="absolute top-6 left-4 right-4 text-xs text-slate-100 text-center">
-            <p className="font-medium">คณะสังคมศาสตร์ มหาวิทยาลัยนเรศวร</p>
-            <p className="text-slate-200 mt-1 text-[10px]">
-              ขอให้ทุกท่านที่มาลอยกระทงออนไลน์ในค่ำคืนนี้ เต็มไปด้วยความสุข ความสบายใจ และแสงสว่างในทุกเส้นทางชีวิต
-            </p>
-          </div>
+                <stop offset="0%" stop-color="#0ea5e9" stop-opacity="0.95" />
+                <stop offset="100%" stop-color="#0369a1" stop-opacity="0.9" />
+              </linearGradient>
+            </defs>
+            <path
+              id="wave-path"
+              fill="url(#waveGradient)"
+              d="M0 60 Q40 60 80 60 T160 60 T240 60 T320 60 T400 60 T480 60 T560 60 T640 60 T720 60 V120 H0 Z"
+            />
+          </svg>
         </div>
       </div>
     </div>
-  );
-}
+  </div>
+
+  <script>
+    const form = document.getElementById("krathong-form");
+    const nameInput = document.getElementById("name-input");
+    const wishInput = document.getElementById("wish-input");
+    const scene = document.getElementById("scene");
+    const bgAudio = document.getElementById("bg-audio");
+    const musicToggle = document.getElementById("music-toggle");
+    const wavePath = document.getElementById("wave-path");
+
+    let krathongs = [];
+    let time = 0;
+    let isPlaying = false;
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      const name = nameInput.value.trim();
+      const wish = wishInput.value.trim();
+      if (!name) return;
+
+      const newKrathong = {
+        id: Date.now(),
+        name,
+        wish: wish || "ขอให้มีความสุขและปลอดภัย",
+        baseX: 15 + Math.random() * 70,
+        baseBottom: 8 + Math.random() * 10,
+        phase: Math.random() * Math.PI * 2,
+        speed: 0.4 + Math.random() * 0.5,
+      };
+
+      const wrapper = document.createElement("div");
+      wrapper.className = "krathong-wrapper";
+      wrapper.innerHTML = `
+        <div class="candles">
+          <div class="candle c1"></div>
+          <div class="candle c2"></div>
+          <div class="candle c3"></div>
+        </div>
+        <div class="krathong-base">
+          <div class="krathong-name">${escapeHtml(newKrathong.name)}</div>
+        </div>
+        <div class="wish-box">
+          <span>“${escapeHtml(newKrathong.wish)}”</span>
+        </div>
+      `;
+      scene.appendChild(wrapper);
+      newKrathong.el = wrapper;
+
+      krathongs = [...krathongs.slice(-7), newKrathong];
+      nameInput.value = "";
+    });
+
+    musicToggle.addEventListener("click", function () {
+      if (!bgAudio) return;
+      if (isPlaying) {
+        bgAudio.pause();
+        isPlaying = false;
+        musicToggle.textContent = "🎵 เปิดเพลงวันเพ็ญเดือนสิบสอง";
+      } else {
+        bgAudio.currentTime = 0;
+        bgAudio.volume = 0.8;
+        bgAudio
+          .play()
+          .then(() => {
+            isPlaying = true;
+            musicToggle.textContent = "🔊 หยุดเพลง";
+          })
+          .catch((err) => {
+            console.warn("Audio play blocked:", err);
+            alert("⚠️ กรุณาแตะปุ่มเปิดเพลงอีกครั้ง หรือเช็กว่าใส่ลิงก์ไฟล์เพลงถูกต้องแล้ว");
+          });
+      }
+    });
+
+    function animate() {
+      time += 0.03;
+      updateWave();
+      updateKrathongs();
+      requestAnimationFrame(animate);
+    }
+
+    function updateWave() {
+      if (!wavePath) return;
+      const yMid = 60;
+      const amp = 5;
+      const p = `
+        M0 ${yMid}
+        Q40 ${yMid + Math.sin(time) * amp} 80 ${yMid}
+        T160 ${yMid}
+        T240 ${yMid}
+        T320 ${yMid}
+        T400 ${yMid}
+        T480 ${yMid}
+        T560 ${yMid}
+        T640 ${yMid}
+        T720 ${yMid}
+        V120 H0 Z
+      `;
+      wavePath.setAttribute("d", p.replace(/\s+/g, " ").trim());
+    }
+
+    function updateKrathongs() {
+      krathongs.forEach((k) => {
+        if (!k.el) return;
+        const floatX = k.baseX + Math.sin(time * k.speed + k.phase) * 3;
+        const floatY = Math.sin(time * k.speed + k.phase) * 4;
+        const hue = (time * 25 + k.phase * 80) % 360;
+        const color = `hsl(${hue}, 70%, 45%)`;
+
+        k.el.style.left = floatX + "%";
+        k.el.style.bottom = k.baseBottom + "%";
+        k.el.style.transform = `translateX(-50%) translateY(${floatY}px)`;
+
+        const base = k.el.querySelector(".krathong-base");
+        if (base) {
+          base.style.background = color;
+        }
+      });
+    }
+
+    function escapeHtml(str) {
+      return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
